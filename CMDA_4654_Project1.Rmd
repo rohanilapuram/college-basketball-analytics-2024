@@ -46,6 +46,8 @@ urlcolor: blue
 #  Here you can set global options for the entire document
 
 library(knitr) # I recommend doing this here
+library(rvest)
+library(dplyr)
 
 # Although you can call functions from a library using the following notation
 #  without loading the entire library.
@@ -68,7 +70,7 @@ knitr::opts_chunk$set(echo = TRUE,
 # include=FALSE does more than echo=FALSE, it actually does: echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.show='hide'
 
 # You should set your working directory at the very beginning of your R Markdown file
-# setwd("~/Dropbox/teaching/FA2020/CMDA_4654/homework/homework1/")
+setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
 
 # In linux ~/ is shorthand for /home/username/
 # You should type things out properly for your system
@@ -83,19 +85,11 @@ knitr::opts_chunk$set(echo = TRUE,
 <!-- ---------------------------------------------------------------------------------------------------- -->
 
 
-# Problem 1
-
-## Part a
-
-Example Chunk Below
-
+### Web Scraping Data
 ```{r}
-plot(cars)
-```
-
-
-```{r}
-summary(mtcars)
+link = "https://kenpom.com/"
+page = read_html(link)
+table = page %>% html_nodes("")
 ```
 
 
