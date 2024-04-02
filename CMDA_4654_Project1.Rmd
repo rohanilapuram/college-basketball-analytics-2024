@@ -89,7 +89,34 @@ setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
 ```{r}
 link = "https://kenpom.com/"
 page = read_html(link)
-table = page %>% html_nodes("")
+table = page %>% html_nodes("table#ratings-table") %>%
+  html_table() %>% .[[1]]
+cbb_df = data.frame(table)
+
+new_column_names <- cbb_df[1, ]
+
+# Assigning the new column names to the data frame
+names(cbb_df) <- new_column_names
+
+# Removing the first row from the data frame
+cbb_df <- cbb_df[-1, ]
+
+cbb_df = cbb_df[-c(7,9,11,13,15,17,19,21)]
+
+rownames(cbb_df) <- NULL
+
+cbb_df <- cbb_df[-c(41,42,83,84,125,126,167,168,209,210,251,252,293,294,335,336,377,378), ]
+
+rownames(cbb_df) = cbb_df$Rk
+
+library(tidyr)
+
+
+
+# Assuming your dataframe is called cbb_df
+cbb_df <- separate(cbb_df, "W-L", into = c("Wins", "Losses"), sep = "-")
+
+
 ```
 
 
