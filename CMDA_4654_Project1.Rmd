@@ -1,8 +1,8 @@
 ---
-title: "CMDA-4654  \n Homework Template"
-subtitle: "Homework XX"
-author: "Your name here"
-date: "Today's Date"
+title: "CMDA-4654"
+subtitle: "Project 1"
+author: "Matthew Hill and Rohan Reddy Illapuram"
+date: "April 1, 2024"
 output:
   pdf_document:
     highlight: haddock
@@ -48,6 +48,13 @@ urlcolor: blue
 library(knitr) # I recommend doing this here
 library(rvest)
 library(dplyr)
+library(tidyr)
+library(tm)
+library(car)
+library(lmtest)
+library(GGally)
+library(MASS)
+library(leaps)
 
 # Although you can call functions from a library using the following notation
 #  without loading the entire library.
@@ -85,7 +92,7 @@ setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
 <!-- ---------------------------------------------------------------------------------------------------- -->
 
 
-### Web Scraping Data
+### Web Scraping Data and Cleaning Data
 ```{r}
 link = "https://kenpom.com/"
 page = read_html(link)
@@ -93,31 +100,123 @@ table = page %>% html_nodes("table#ratings-table") %>%
   html_table() %>% .[[1]]
 cbb_df = data.frame(table)
 
-new_column_names <- cbb_df[1, ]
-
-# Assigning the new column names to the data frame
-names(cbb_df) <- new_column_names
-
-# Removing the first row from the data frame
-cbb_df <- cbb_df[-1, ]
+new_column_names = cbb_df[1, ]
+names(cbb_df) = new_column_names
+cbb_df = cbb_df[-1, ]
 
 cbb_df = cbb_df[-c(7,9,11,13,15,17,19,21)]
-
-rownames(cbb_df) <- NULL
-
-cbb_df <- cbb_df[-c(41,42,83,84,125,126,167,168,209,210,251,252,293,294,335,336,377,378), ]
-
+rownames(cbb_df) = NULL
+cbb_df = cbb_df[-c(41,42,83,84,125,126,167,168,209,210,251,252,293,294,335,336,377,378), ]
 rownames(cbb_df) = cbb_df$Rk
 
-library(tidyr)
+cbb_df = separate(cbb_df, "W-L", into = c("Wins", "Losses"), sep = "-")
 
+cbb_df$Rk = as.numeric(cbb_df$Rk)
+cbb_df$Team = removeNumbers(cbb_df$Team)
+cbb_df$Wins = as.numeric(cbb_df$Wins)
+cbb_df$Losses = as.numeric(cbb_df$Losses)
+cbb_df$AdjEM = as.numeric(gsub("\\+", "", cbb_df$AdjEM))
+cbb_df$AdjO = as.numeric(cbb_df$AdjO)
+cbb_df$AdjD = as.numeric(cbb_df$AdjD)
+cbb_df$AdjT = as.numeric(cbb_df$AdjT)
+cbb_df$Luck = as.numeric(gsub("\\+", "", cbb_df$Luck))
+cbb_df$AdjEM.1 = as.numeric(gsub("\\+", "", cbb_df$AdjEM.1))
+cbb_df$OppO = as.numeric(cbb_df$OppO)
+cbb_df$OppD = as.numeric(cbb_df$OppD)
+cbb_df$AdjEM.2 = as.numeric(gsub("\\+", "", cbb_df$AdjEM.2))
 
-
-# Assuming your dataframe is called cbb_df
-cbb_df <- separate(cbb_df, "W-L", into = c("Wins", "Losses"), sep = "-")
-
-
+names(cbb_df)[names(cbb_df) == "AdjEM"] = "EM"
+names(cbb_df)[names(cbb_df) == "AdjO"] = "OE"
+names(cbb_df)[names(cbb_df) == "AdjD"] = "DE"
+names(cbb_df)[names(cbb_df) == "AdjT"] = "Tempo"
+names(cbb_df)[names(cbb_df) == "AdjEM.1"] = "SOS"
+names(cbb_df)[names(cbb_df) == "AdjEM.2"] = "NCSOS"
 ```
+
+### Fitting a MLR 
+```{r}
+## Full Model with all variables
+power_5 = c("ACC", "Big 12", "Big Ten", "Pac-12", "SEC")
+predictive_data = cbb_df %>% filter(Conf %in% power_5)
+head(predictive_data)
+predictive_data = predictive_data[ ,-c(2,3)]
+
+full_mdl = lm(Wins ~ ., data = predictive_data)
+summary(full_mdl)
+vif(full_mdl)
+
+## Reduced model to eliminate multicollinearity
+reduced_mdl = lm(Wins ~ OE + DE + Tempo + Luck + OppO + OppD + NCSOS, data = predictive_data)
+summary(reduced_mdl)
+vif(reduced_mdl)
+avPlots(reduced_mdl)
+
+## Assumptions
+student_r = rstudent(reduced_mdl)
+fitted_values = reduced_mdl$fitted.values
+
+plot(fitted_values, student_r, xlab = 'Fitted Values', ylab = 'Studentized Residuals')
+abline(0,0, col = 'blue')
+bptest(reduced_mdl)
+
+qqnorm(student_r)
+abline(0,1,col='red')
+hist(student_r)
+shapiro.test(student_r)
+
+## Outliers
+plot(fitted_values, student_r, xlab = 'Fitted Values', ylab = 'Studentized Residuals', main = 'Student vs Fitted')
+abline(0,0, col = 'blue')
+abline(h = c(-2,2), col= 'red')
+
+h = hatvalues(reduced_mdl)
+plot(h, main = 'Leverage Plots', ylab = 'Leverage Values', xlab = 'Observation Index')
+p = 4; n = length(predictive_data[,1])
+cutoff = (2*p)/n
+abline(h = cutoff, col = 'black')
+
+cd = cooks.distance(reduced_mdl)
+plot(cd, ylab = 'Cooks Distance', xlab = 'Observation Index', main = 'Cooks Distance Plot')
+abline(h = 0.1, col = 'black')
+predictive_data[which(cd > 0.6), ]
+cbb_df[43, ]
+```
+
+### Exhaustive Model Approach
+```{r}
+regit.full = regsubsets(Wins ~ OE + DE + Tempo + Luck + OppO + OppD + NCSOS, data = predictive_data, method = 'exhaustive', nbest = 1)
+output = summary(regit.full, all.best = TRUE)
+criterion_mat = cbind(output$rsq, output$adjr2, output$cp, output$bic)
+colnames(criterion_mat) = c('R2', 'AdjR2', 'Cp', 'BIC')
+results_mat = cbind(output$outmat, round(criterion_mat, 3))
+results_mat
+```
+
+### Analyzing what was found to be the best model
+```{r}
+best_mdl = lm(Wins ~ OE + DE + Tempo + Luck + OppD + NCSOS, data = predictive_data)
+summary(best_mdl)
+vif(best_mdl)
+avPlots(best_mdl)
+
+## Assumptions
+student_r = rstudent(best_mdl)
+fitted_values = best_mdl$fitted.values
+
+plot(fitted_values, student_r, xlab = 'Fitted Values', ylab = 'Studentized Residuals')
+abline(0,0, col = 'blue')
+bptest(best_mdl)
+
+qqnorm(student_r)
+abline(0,1,col='red')
+hist(student_r)
+shapiro.test(student_r)
+```
+
+
+
+
+
 
 
 
