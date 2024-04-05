@@ -26,8 +26,9 @@ header-includes:
 - \usepackage[normalem]{ulem}
 - \usepackage{makecell}
 - \usepackage{xcolor}
+- \usepackage{amsmath}
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 documentclass: article
 urlcolor: blue
 ---
@@ -77,7 +78,7 @@ knitr::opts_chunk$set(echo = TRUE,
 # include=FALSE does more than echo=FALSE, it actually does: echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.show='hide'
 
 # You should set your working directory at the very beginning of your R Markdown file
-setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
+#setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
 
 # In linux ~/ is shorthand for /home/username/
 # You should type things out properly for your system
@@ -214,9 +215,177 @@ shapiro.test(student_r)
 ```
 
 
+### Ridge regression
+
+Ridge regression is a regularization technique(Method in statistics used to reduce error caused by overfitting of data) for linear regression models. Used to get rid of overfitting in training data we use for our model. It is also know as L2 regularization. Problem that is solved using this regression is "Multicollinearity". In this technique of regilarization we add a bias into the model for decreasing model's variance. 
+
+Residual Sum Squares formula for linear regression is given by \ \
+$RSS = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$ \
+\
+Where: \
+n is the number of data points in the dataset. \
+$y_i$ is the observed value of the dependent variable for data point \
+$\hat{y}_i$ is the predicted value of the dependent variable for data point i based on the regression model. \ \
+Where as by adding the regularization term according to Ridge regression we would get \ \
+$RSS_{ridge} = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^{p} \beta_j^2$
+$\lambda$ is the regularization parameter (also known as the ridge parameter or penalty parameter) that controls the strength of the regularization.} \
+$p$ is the number of predictor variables (features) in the regression model.\
+$\beta_j$ represents the coefficients (weights) associated with each predictor variable. \
 
 
 
 
+
+```{r}
+library(ggplot2)
+library(reshape2)  # For melt() function
+
+# Assuming 'cbb_df' is your data frame containing the data
+# Extract the relevant columns for correlation analysis
+cols_of_interest <- c("Wins", "Losses", "EM", "OE", "DE", "Tempo", "Luck", "SOS", "OppO", "OppD", "NCSOS")
+data_subset <- cbb_df[, cols_of_interest]
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(data_subset)
+
+# Convert the correlation matrix to long format for ggplot
+correlation_data <- melt(correlation_matrix)
+
+# Create the correlation heatmap using ggplot2
+heatmap <- ggplot(correlation_data, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "grey50", name = "Correlation") +
+  labs(title = "Correlation Heatmap", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()
+  )
+
+heatmap
+
+```
+
+Research Question: 
+
+```{r}
+# Load the necessary libraries
+library(glmnet)
+library(dplyr)
+library(plotly)  # for 3D plots
+
+# Split the data into predictors (X) and response variable (y)
+X <- as.matrix(cbb_df[, c("OE", "SOS")])
+y <- cbb_df$Wins
+
+# Split the data into training and testing sets (e.g., 70% training, 30% testing)
+set.seed(123)  # for reproducibility
+train_indices <- sample(nrow(cbb_df), 0.7 * nrow(cbb_df))
+X_train <- X[train_indices, ]
+y_train <- y[train_indices]
+X_test <- X[-train_indices, ]
+y_test <- y[-train_indices]
+
+# Perform linear regression on the training data
+lm_model <- lm(y_train ~ X_train)
+summary(lm_model)
+ridge_model <- cv.glmnet(x = X_train, y = y_train, alpha = 0)  # alpha = 0 for ridge regression
+
+# Get the optimal lambda value chosen by cross-validation
+optimal_lambda <- ridge_model$lambda.min  # You can also use `lambda.1se` for a more regularized model
+
+# Extract the coefficients for the optimal lambda value
+coefficients_ridge <- coef(ridge_model, s = optimal_lambda)
+
+# Form the equation of the ridge regression model
+intercept <- coefficients_ridge[1]
+coefficients <- coefficients_ridge[-1]  # Exclude the intercept term
+features <- colnames(X_train)
+ridge_equation <- paste("y =", paste(coefficients, features, sep = " * ", collapse = " + "), "+", intercept)
+
+# Print the equation
+print(ridge_equation)
+
+intercept <- -61.7454572
+coef_OE <- 0.7459537
+coef_SOS <- -0.2537968
+
+# Define a function for the plane equation
+plane_equation <- function(x, y) {
+  return(intercept + coef_OE * x + coef_SOS * y)
+}
+predicted_wins = plane_equation(X_train[,"OE"], X_train[,"SOS"])
+# Create the 3D scatter plot with plotly
+ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, type = "scatter3d", mode = "markers", marker = list(color = "blue", size = 5)) %>%
+  layout(title = "3D Scatter Plot of Training Data",
+         scene = list(xaxis = list(title = "OE"), 
+                      yaxis = list(title = "SOS"), 
+                      zaxis = list(title = "Wins"))) 
+  # Add the plane using the coefficients
+
+ridge.plot <- add_trace(p= ridge.plot,
+                        z = predicted_wins,
+                        x = X_train[,"OE"],
+                        y = X_train[,"SOS"],
+                        )
+ridge.plot
+```
+
+To obtain the equation of the ridge regression model, we first fitted the model using cross-validated ridge regression with the `cv.glmnet` function in R. This function selects an optimal lambda value through cross-validation. \
+
+After fitting the ridge regression model, we extracted the coefficients corresponding to the optimal lambda value. The coefficients represent the weights assigned to each predictor variable in the model. \ 
+
+The equation of the ridge regression model can be written as follows: \
+
+\[ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_n x_n \] \
+
+Where: \
+- \( y \) is the dependent variable (e.g., Wins in our case). \
+- \( \beta_0 \) is the intercept term. \
+- \( \beta_1, \beta_2, \ldots, \beta_n \) are the coefficients corresponding to  predictor variables \( x_1, x_2, \ldots, x_n \) respectively. \
+
+For our specific ridge regression model, the coefficients and variables are substituted into the equation to form the final equation, which can be written in the form: \
+
+\[
+\text{Wins} = -61.7454572 + 0.7459537 \times \text{OE} - 0.2537968 \times \text{SOS}
+\]
+
+```{r}
+# Calculate the plane equation using the coefficients
+intercept <- -61.7454572
+coef_OE <- 0.7459537
+coef_SOS <- -0.2537968
+
+# Define a function for the plane equation
+plane_equation <- function(x, y) {
+  return(intercept + coef_OE * x + coef_SOS * y)
+}
+
+# Calculate predicted wins using the plane equation
+predicted_wins <- plane_equation(X_train[,"OE"], X_train[,"SOS"])
+
+# Create the 3D scatter plot with plotly
+ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, type = "scatter3d", mode = "markers", marker = list(color = "blue", size = 5)) %>%
+  layout(title = "3D Scatter Plot of Training Data",
+         scene = list(xaxis = list(title = "OE"), 
+                      yaxis = list(title = "SOS"), 
+                      zaxis = list(title = "Wins"))) 
+
+# Add the plane using the predicted wins
+ridge.plot <- add_surface(p = ridge.plot, z = matrix(predicted_wins, nrow = length(unique(X_train[,"OE"])), ncol = length(unique(X_train[,"SOS"]))),
+                          x = unique(X_train[,"OE"]),
+                          y = unique(X_train[,"SOS"]),
+                          )
+
+ridge.plot
+
+
+
+```
 
 
