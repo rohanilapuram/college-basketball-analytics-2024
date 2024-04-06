@@ -26,8 +26,9 @@ header-includes:
 - \usepackage[normalem]{ulem}
 - \usepackage{makecell}
 - \usepackage{xcolor}
+- \usepackage{amsmath}
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 documentclass: article
 urlcolor: blue
 ---
@@ -77,7 +78,7 @@ knitr::opts_chunk$set(echo = TRUE,
 # include=FALSE does more than echo=FALSE, it actually does: echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.show='hide'
 
 # You should set your working directory at the very beginning of your R Markdown file
-setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
+#setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
 
 # In linux ~/ is shorthand for /home/username/
 # You should type things out properly for your system
@@ -99,6 +100,53 @@ page = read_html(link)
 table = page %>% html_nodes("table#ratings-table") %>%
   html_table() %>% .[[1]]
 cbb_df = data.frame(table)
+
+data = read.csv("CBBData.csv")
+cbb_df2 = data.frame(data)
+cbb_df2$NCAA_Tourney <- ifelse(grepl("NCAA", cbb_df2$School), "Yes", "No")
+cbb_df2$School = gsub(" NCAA", "", cbb_df2$School)
+
+names(cbb_df2)[names(cbb_df2) == "W.L."] = "Win_Loss_Percentage"
+names(cbb_df2)[names(cbb_df2) == "W.1"] = "Conference Wins"
+names(cbb_df2)[names(cbb_df2) == "L.1"] = "Conference Losses"
+names(cbb_df2)[names(cbb_df2) == "W.2"] = "Home_W"
+names(cbb_df2)[names(cbb_df2) == "L.2"] = "Home_L"
+names(cbb_df2)[names(cbb_df2) == "W.3"] = "Away_W"
+names(cbb_df2)[names(cbb_df2) == "L.3"] = "Away_L"
+names(cbb_df2)[names(cbb_df2) == "Tm."] = "Points_For"
+names(cbb_df2)[names(cbb_df2) == "Opp."] = "Points_Against"
+names(cbb_df2)[names(cbb_df2) == "FG."] = "FG_Perecntage"
+names(cbb_df2)[names(cbb_df2) == "X3P"] = "3P"
+names(cbb_df2)[names(cbb_df2) == "X3PA"] = "3PA"
+names(cbb_df2)[names(cbb_df2) == "X3P."] = "3P_Percentage"
+names(cbb_df2)[names(cbb_df2) == "FT."] = "FT_Percentage"
+ready_to_merge = cbb_df2[-c(1,3,4,5,7,8)]
+
+ready_to_merge$`Conference Wins` = as.numeric(ready_to_merge$`Conference Wins`)
+ready_to_merge$`Conference Losses` = as.numeric(ready_to_merge$`Conference Losses`)
+ready_to_merge$Home_W = as.numeric(ready_to_merge$Home_W)
+ready_to_merge$Home_L = as.numeric(ready_to_merge$Home_L)
+ready_to_merge$Away_W = as.numeric(ready_to_merge$Away_W)
+ready_to_merge$Away_L = as.numeric(ready_to_merge$Away_L)
+ready_to_merge$Points_For = as.numeric(ready_to_merge$Points_For)
+ready_to_merge$Points_Against = as.numeric(ready_to_merge$Points_Against)
+ready_to_merge$MP = as.numeric(ready_to_merge$MP)
+ready_to_merge$FG = as.numeric(ready_to_merge$FG)
+ready_to_merge$FGA = as.numeric(ready_to_merge$FGA)
+ready_to_merge$FG_Perecntage = as.numeric(ready_to_merge$FG_Perecntage)
+ready_to_merge$`3P` = as.numeric(ready_to_merge$`3P`)
+ready_to_merge$`3P_Percentage` = as.numeric(ready_to_merge$`3P_Percentage`)
+ready_to_merge$FT = as.numeric(ready_to_merge$FT)
+ready_to_merge$FTA = as.numeric(ready_to_merge$FTA)
+ready_to_merge$FT_Percentage = as.numeric(ready_to_merge$FT_Percentage)
+ready_to_merge$ORB = as.numeric(ready_to_merge$ORB)
+ready_to_merge$TRB = as.numeric(ready_to_merge$TRB)
+ready_to_merge$AST = as.numeric(ready_to_merge$AST)
+ready_to_merge$STL = as.numeric(ready_to_merge$STL)
+ready_to_merge$BLK = as.numeric(ready_to_merge$BLK)
+ready_to_merge$TOV = as.numeric(ready_to_merge$TOV)
+ready_to_merge$PF = as.numeric(ready_to_merge$PF)
+ready_to_merge$NCAA_Tourney = as.factor(ready_to_merge$NCAA_Tourney)
 
 new_column_names = cbb_df[1, ]
 names(cbb_df) = new_column_names
@@ -131,6 +179,55 @@ names(cbb_df)[names(cbb_df) == "AdjD"] = "DE"
 names(cbb_df)[names(cbb_df) == "AdjT"] = "Tempo"
 names(cbb_df)[names(cbb_df) == "AdjEM.1"] = "SOS"
 names(cbb_df)[names(cbb_df) == "AdjEM.2"] = "NCSOS"
+cbb_df$Team = trimws(cbb_df$Team)
+ready_to_merge$School = trimws(ready_to_merge$School)
+cbb_df$Team = gsub(" St\\.$", " State", cbb_df$Team)
+ready_to_merge$School = gsub("-", " ", ready_to_merge$School)
+ready_to_merge$School = gsub("Brigham Young", "BYU", ready_to_merge$School)
+ready_to_merge$School = gsub("NC State", "N.C. State", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern Methodist", "SMU", ready_to_merge$School)
+ready_to_merge$School = gsub("Nevada Las Vegas", "UNLV", ready_to_merge$School)
+ready_to_merge$School = gsub("Virginia Commonwealth", "VCU", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern California", "USC", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola", "Loyola Chicago", ready_to_merge$School)
+ready_to_merge$School = gsub("Louisiana State", "LSU", ready_to_merge$School)
+ready_to_merge$School = gsub("College of Charleston", "Charleston", ready_to_merge$School)
+ready_to_merge$School = gsub("Sam Houston", "Sam Houston State", ready_to_merge$School)
+ready_to_merge$School = gsub("Massachusetts Lowell", "UMass Lowell", ready_to_merge$School)
+ready_to_merge$School = gsub("Texas A&M Corpus Christi", "Texas A&M Corpus Chris", ready_to_merge$School)
+ready_to_merge$School = gsub("California Baptist", "Cal Baptist", ready_to_merge$School)
+ready_to_merge$School = gsub("Pennsylvania", "Penn", ready_to_merge$School)
+ready_to_merge$School = gsub("Kansas City", "UMKC", ready_to_merge$School)
+ready_to_merge$School = gsub("Bowling Green State", "Bowling Green", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern Mississippi", "Southern Miss", ready_to_merge$School)
+ready_to_merge$School = gsub("Grambling", "Grambling State", ready_to_merge$School)
+ready_to_merge$School = gsub("Omaha", "Nebraska Omaha", ready_to_merge$School)
+ready_to_merge$School = gsub("Central Connecticut State", "Central Connecticut", ready_to_merge$School)
+ready_to_merge$School = gsub("Maryland Baltimore County", "UMBC", ready_to_merge$School)
+ready_to_merge$School = gsub("Florida International", "FIU", ready_to_merge$School)
+ready_to_merge$School = gsub("South Carolina Upstate", "USC Upstate", ready_to_merge$School)
+ready_to_merge$School = gsub("FDU", "Fairleigh Dickinson", ready_to_merge$School)
+ready_to_merge$School = gsub("Texas Rio Grande Valley", "UT Rio Grande Valley", ready_to_merge$School)
+ready_to_merge$School = gsub("Prairie View", "Prairie View A&M", ready_to_merge$School)
+ready_to_merge$School = gsub("Long Island University", "LIU", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Northridge", "Cal St. Northridge", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Fullerton", "Cal St. Fullerton", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Bakersfield", "Cal St. Bakersfield", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago Marymount", "Loyola Marymount", ready_to_merge$School)
+ready_to_merge$School = gsub("\\s*\\(([^\\)]+)\\)", " \\1", ready_to_merge$School)
+ready_to_merge$School = gsub("Saint Mary's CA", "Saint Mary's", ready_to_merge$School)
+ready_to_merge$School = gsub("St. John's NY", "St. John's", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago IL", "Loyola Chicago", ready_to_merge$School)
+ready_to_merge$School = gsub("Albany NY", "Albany", ready_to_merge$School)
+ready_to_merge$School = gsub("Queens NC", "Queens", ready_to_merge$School)
+ready_to_merge$School = gsub("Saint Francis PA", "Saint Francis", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago MD", "Loyola MD", ready_to_merge$School)
+
+merged_df = merge(cbb_df, ready_to_merge, by.x = "Team", by.y = "School", all.x = TRUE)
+merged_df = merged_df[order(merged_df$Rk), ]
+rownames(merged_df) = merged_df$Rk
+merged_df[295, ]$`Conference Wins` = merged_df[295, ]$Wins
+merged_df[295, ]$`Conference Losses` = merged_df[295, ]$Losses
 ```
 
 ### Fitting a MLR 
@@ -214,9 +311,199 @@ shapiro.test(student_r)
 ```
 
 
+### Ridge regression
+
+Ridge regression is a regularization technique(Method in statistics used to reduce error caused by overfitting of data) for linear regression models. Used to get rid of overfitting in training data we use for our model. It is also know as L2 regularization. Problem that is solved using this regression is "Multicollinearity". In this technique of regilarization we add a bias into the model for decreasing model's variance. 
+
+Residual Sum Squares formula for linear regression is given by \ \
+$RSS = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2$ \
+\
+Where: \
+n is the number of data points in the dataset. \
+$y_i$ is the observed value of the dependent variable for data point \
+$\hat{y}_i$ is the predicted value of the dependent variable for data point i based on the regression model. \ \
+Where as by adding the regularization term according to Ridge regression we would get \ \
+$RSS_{ridge} = \sum_{i=1}^{n} (y_i - \hat{y}_i)^2 + \lambda \sum_{j=1}^{p} \beta_j^2$
+$\lambda$ is the regularization parameter (also known as the ridge parameter or penalty parameter) that controls the strength of the regularization.} \
+$p$ is the number of predictor variables (features) in the regression model.\
+$\beta_j$ represents the coefficients (weights) associated with each predictor variable. \
 
 
 
+
+
+```{r}
+library(ggplot2)
+library(reshape2)  # For melt() function
+
+# Assuming 'cbb_df' is your data frame containing the data
+# Extract the relevant columns for correlation analysis
+cols_of_interest <- c("Wins", "Losses", "EM", "OE", "DE", "Tempo", "Luck", "SOS", "OppO", "OppD", "NCSOS")
+data_subset <- cbb_df[, cols_of_interest]
+
+# Calculate the correlation matrix
+correlation_matrix <- cor(data_subset)
+
+# Convert the correlation matrix to long format for ggplot
+correlation_data <- melt(correlation_matrix)
+
+# Create the correlation heatmap using ggplot2
+heatmap <- ggplot(correlation_data, aes(Var1, Var2, fill = value)) +
+  geom_tile() +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  scale_fill_gradient(low = "white", high = "red", na.value = "grey50", name = "Correlation") +
+  labs(title = "Correlation Heatmap", x = NULL, y = NULL) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_blank()
+  )
+
+heatmap
+
+```
+
+Research Question: 
+
+```{r}
+# Load the necessary libraries
+library(glmnet)
+library(dplyr)
+library(plotly)  # for 3D plots
+ 
+# Split the data into predictors (X) and response variable (y)
+X <- as.matrix(cbb_df[, c("OE", "SOS")])
+y <- cbb_df$Wins
+
+# Split the data into training and testing sets (e.g., 70% training, 30% testing)
+set.seed(123)  # for reproducibility
+train_indices <- sample(nrow(cbb_df), 0.7 * nrow(cbb_df))
+X_train <- X[train_indices, ]
+y_train <- y[train_indices]
+X_test <- X[-train_indices, ]
+y_test <- y[-train_indices]
+
+# Perform linear regression on the training data
+
+ridge_model <- cv.glmnet(x = X_train, y = y_train, alpha = 0)  # alpha = 0 for ridge regression
+
+```
+
+## Making predictions using ridge model
+```{r}
+# Get the optimal lambda value chosen by cross-validation
+optimal_lambda <- ridge_model$lambda.min  # You can also use `lambda.1se` for a more regularized model
+
+# Extract the coefficients for the optimal lambda value
+coefficients_ridge <- coef(ridge_model, s = optimal_lambda)
+
+# Form the equation of the ridge regression model
+intercept <- coefficients_ridge[1]
+coefficients <- coefficients_ridge[-1]  # Exclude the intercept term
+features <- colnames(X_train)
+ridge_equation <- paste("y =", paste(coefficients, features, sep = " * ", collapse = " + "), "+", intercept)
+
+# Print the equation
+print(ridge_equation)
+
+# Define the plane equation coefficients
+intercept <- -61.7454572
+coef_OE <- 0.7459537
+coef_SOS <- -0.2537968
+
+# Define a function for the plane equation
+plane_equation <- function(x, y) {
+  return(intercept + coef_OE * x + coef_SOS * y)
+}
+
+# Calculate predicted wins using the plane equation
+predicted_wins <- plane_equation(X_train[,"OE"], X_train[,"SOS"])
+
+# Create a grid of points for the plane
+grid_points <- expand.grid(OE = seq(min(X_train[,"OE"]), max(X_train[,"OE"]), length.out = 50),
+                            SOS = seq(min(X_train[,"SOS"]), max(X_train[,"SOS"]), length.out = 50))
+grid_points$Wins <- plane_equation(grid_points$OE, grid_points$SOS)
+
+# Create the 3D scatter plot with plotly
+ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, 
+                      type = "scatter3d", mode = "markers", 
+                      marker = list(color = "blue", size = 5)) %>%
+  layout(title = "3D Scatter Plot of Training Data",
+         scene = list(xaxis = list(title = "OE"), 
+                      yaxis = list(title = "SOS"), 
+                      zaxis = list(title = "Wins")))
+
+# Add the plane using the grid points
+ridge.plot <- add_surface(p = ridge.plot,
+                          z = matrix(grid_points$Wins, 
+                                      nrow = length(unique(grid_points$OE)), 
+                                      ncol = length(unique(grid_points$SOS)), 
+                                      byrow = TRUE),
+                          x = unique(grid_points$OE),
+                          y = unique(grid_points$SOS),
+                          colorscale = "Viridis")
+
+ridge.plot
+z = matrix(grid_points$Wins, nrow = length(unique(grid_points$OE)), ncol = length(unique(grid_points$SOS)), byrow = TRUE)
+length(z)
+
+```
+
+To obtain the equation of the ridge regression model, we first fitted the model using cross-validated ridge regression with the `cv.glmnet` function in R. This function selects an optimal lambda value through cross-validation. \
+
+After fitting the ridge regression model, we extracted the coefficients corresponding to the optimal lambda value. The coefficients represent the weights assigned to each predictor variable in the model. \ 
+
+The equation of the ridge regression model can be written as follows: \
+
+\[ y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \ldots + \beta_n x_n \] \
+
+Where: \
+- \( y \) is the dependent variable (e.g., Wins in our case). \
+- \( \beta_0 \) is the intercept term. \
+- \( \beta_1, \beta_2, \ldots, \beta_n \) are the coefficients corresponding to  predictor variables \( x_1, x_2, \ldots, x_n \) respectively. \
+
+For our specific ridge regression model, the coefficients and variables are substituted into the equation to form the final equation, which can be written in the form: \
+
+\[
+\text{Wins} = -61.7454572 + 0.7459537 \times \text{OE} - 0.2537968 \times \text{SOS}
+\]
+
+```{r}
+# Predictions from the linear regression model
+lm_model = lm(y_train ~ X_train)
+lm_predictions <- predict(lm_model, newdata = as.data.frame(X_test))
+
+# Predictions from the ridge regression model
+ridge_predictions <- predict(ridge_model, newx = X_test, s = optimal_lambda)
+
+# Calculate Mean Squared Error (MSE)
+mse_lm <- mean((y_test - lm_predictions)^2)
+mse_ridge <- mean((y_test - ridge_predictions)^2)
+
+# Calculate R-squared (R2)
+rsquared_lm <- 1 - (sum((y_test - lm_predictions)^2) / sum((y_test - mean(y_test))^2))
+rsquared_ridge <- 1 - (sum((y_test - ridge_predictions)^2) / sum((y_test - mean(y_test))^2))
+
+# Calculate Root Mean Squared Error (RMSE)
+rmse_lm <- sqrt(mse_lm)
+rmse_ridge <- sqrt(mse_ridge)
+
+# Print the results
+cat("Linear Regression Model:\n")
+cat("MSE:", mse_lm, "\n")
+cat("R-squared:", rsquared_lm, "\n")
+cat("RMSE:", rmse_lm, "\n\n")
+
+cat("Ridge Regression Model:\n")
+cat("MSE:", mse_ridge, "\n")
+cat("R-squared:", rsquared_ridge, "\n")
+cat("RMSE:", rmse_ridge, "\n")
+
+```
 
 
 
