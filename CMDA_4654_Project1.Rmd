@@ -278,7 +278,7 @@ Research Question:
 library(glmnet)
 library(dplyr)
 library(plotly)  # for 3D plots
-
+ 
 # Split the data into predictors (X) and response variable (y)
 X <- as.matrix(cbb_df[, c("OE", "SOS")])
 y <- cbb_df$Wins
@@ -292,10 +292,13 @@ X_test <- X[-train_indices, ]
 y_test <- y[-train_indices]
 
 # Perform linear regression on the training data
-lm_model <- lm(y_train ~ X_train)
-summary(lm_model)
+
 ridge_model <- cv.glmnet(x = X_train, y = y_train, alpha = 0)  # alpha = 0 for ridge regression
 
+```
+
+## Making predictions using ridge model
+```{r}
 # Get the optimal lambda value chosen by cross-validation
 optimal_lambda <- ridge_model$lambda.min  # You can also use `lambda.1se` for a more regularized model
 
@@ -311,6 +314,7 @@ ridge_equation <- paste("y =", paste(coefficients, features, sep = " * ", collap
 # Print the equation
 print(ridge_equation)
 
+# Define the plane equation coefficients
 intercept <- -61.7454572
 coef_OE <- 0.7459537
 coef_SOS <- -0.2537968
@@ -319,21 +323,38 @@ coef_SOS <- -0.2537968
 plane_equation <- function(x, y) {
   return(intercept + coef_OE * x + coef_SOS * y)
 }
-predicted_wins = plane_equation(X_train[,"OE"], X_train[,"SOS"])
+
+# Calculate predicted wins using the plane equation
+predicted_wins <- plane_equation(X_train[,"OE"], X_train[,"SOS"])
+
+# Create a grid of points for the plane
+grid_points <- expand.grid(OE = seq(min(X_train[,"OE"]), max(X_train[,"OE"]), length.out = 50),
+                            SOS = seq(min(X_train[,"SOS"]), max(X_train[,"SOS"]), length.out = 50))
+grid_points$Wins <- plane_equation(grid_points$OE, grid_points$SOS)
+
 # Create the 3D scatter plot with plotly
-ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, type = "scatter3d", mode = "markers", marker = list(color = "blue", size = 5)) %>%
+ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, 
+                      type = "scatter3d", mode = "markers", 
+                      marker = list(color = "blue", size = 5)) %>%
   layout(title = "3D Scatter Plot of Training Data",
          scene = list(xaxis = list(title = "OE"), 
                       yaxis = list(title = "SOS"), 
-                      zaxis = list(title = "Wins"))) 
-  # Add the plane using the coefficients
+                      zaxis = list(title = "Wins")))
 
-ridge.plot <- add_trace(p= ridge.plot,
-                        z = predicted_wins,
-                        x = X_train[,"OE"],
-                        y = X_train[,"SOS"],
-                        )
+# Add the plane using the grid points
+ridge.plot <- add_surface(p = ridge.plot,
+                          z = matrix(grid_points$Wins, 
+                                      nrow = length(unique(grid_points$OE)), 
+                                      ncol = length(unique(grid_points$SOS)), 
+                                      byrow = TRUE),
+                          x = unique(grid_points$OE),
+                          y = unique(grid_points$SOS),
+                          colorscale = "Viridis")
+
 ridge.plot
+z = matrix(grid_points$Wins, nrow = length(unique(grid_points$OE)), ncol = length(unique(grid_points$SOS)), byrow = TRUE)
+length(z)
+
 ```
 
 To obtain the equation of the ridge regression model, we first fitted the model using cross-validated ridge regression with the `cv.glmnet` function in R. This function selects an optimal lambda value through cross-validation. \
@@ -356,36 +377,36 @@ For our specific ridge regression model, the coefficients and variables are subs
 \]
 
 ```{r}
-# Calculate the plane equation using the coefficients
-intercept <- -61.7454572
-coef_OE <- 0.7459537
-coef_SOS <- -0.2537968
+# Predictions from the linear regression model
+lm_predictions <- predict(lm_model, newdata = as.data.frame(X_test))
 
-# Define a function for the plane equation
-plane_equation <- function(x, y) {
-  return(intercept + coef_OE * x + coef_SOS * y)
-}
+# Predictions from the ridge regression model
+ridge_predictions <- predict(ridge_model, newx = X_test, s = optimal_lambda)
 
-# Calculate predicted wins using the plane equation
-predicted_wins <- plane_equation(X_train[,"OE"], X_train[,"SOS"])
+# Calculate Mean Squared Error (MSE)
+mse_lm <- mean((y_test - lm_predictions)^2)
+mse_ridge <- mean((y_test - ridge_predictions)^2)
 
-# Create the 3D scatter plot with plotly
-ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train, type = "scatter3d", mode = "markers", marker = list(color = "blue", size = 5)) %>%
-  layout(title = "3D Scatter Plot of Training Data",
-         scene = list(xaxis = list(title = "OE"), 
-                      yaxis = list(title = "SOS"), 
-                      zaxis = list(title = "Wins"))) 
+# Calculate R-squared (R2)
+rsquared_lm <- 1 - (sum((y_test - lm_predictions)^2) / sum((y_test - mean(y_test))^2))
+rsquared_ridge <- 1 - (sum((y_test - ridge_predictions)^2) / sum((y_test - mean(y_test))^2))
 
-# Add the plane using the predicted wins
-ridge.plot <- add_surface(p = ridge.plot, z = matrix(predicted_wins, nrow = length(unique(X_train[,"OE"])), ncol = length(unique(X_train[,"SOS"]))),
-                          x = unique(X_train[,"OE"]),
-                          y = unique(X_train[,"SOS"]),
-                          )
+# Calculate Root Mean Squared Error (RMSE)
+rmse_lm <- sqrt(mse_lm)
+rmse_ridge <- sqrt(mse_ridge)
 
-ridge.plot
+# Print the results
+cat("Linear Regression Model:\n")
+cat("MSE:", mse_lm, "\n")
+cat("R-squared:", rsquared_lm, "\n")
+cat("RMSE:", rmse_lm, "\n\n")
 
-
+cat("Ridge Regression Model:\n")
+cat("MSE:", mse_ridge, "\n")
+cat("R-squared:", rsquared_ridge, "\n")
+cat("RMSE:", rmse_ridge, "\n")
 
 ```
+
 
 
