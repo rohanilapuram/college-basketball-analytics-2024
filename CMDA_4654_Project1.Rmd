@@ -534,6 +534,7 @@ ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
 
 library(class)
 library(caret)
+library(RColorBrewer)
 set.seed(42)
 
 # Generate random indices for splitting
@@ -559,4 +560,53 @@ cat("Accuracy of KNN classifier:", accuracy, "\n")
 conf_matrix <- confusionMatrix(knn_model, y_test)
 print(conf_matrix)
 length(y_test)
+```
+
+
+```{r}
+k_values <- seq(1, 12, by = 1)
+
+# Initialize a vector to store accuracies
+accuracies <- numeric(length(k_values))
+
+# Loop through each K value and train a KNN model
+for (i in seq_along(k_values)) {
+  knn_model <- knn(train = X_train, test = X_test, cl = y_train, k = k_values[i])
+  accuracies[i] <- mean(knn_model == y_test)
+}
+
+# Create a data frame for plotting
+accuracy_df <- data.frame(K = k_values, Accuracy = accuracies)
+
+# Plot accuracies vs. K values
+ggplot(data = accuracy_df, aes(x = K, y = Accuracy)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Accuracies vs. K Values",
+       x = "K Value",
+       y = "Accuracy") +
+  theme_minimal()
+```
+
+## PCA plot
+
+```{r}
+pca_result <- prcomp(train_data[, c("SOS", "Rk", "OE", "DE", "Conference Wins")], scale. = TRUE)
+
+# Convert PCA results to a data frame
+pca_df <- as.data.frame(pca_result$x)
+pca_df$NCAA_Tourney <- as.factor(y_train)
+pca_df$Team <- train_data$Team  # Assuming "Team" column contains team names
+
+# Create interactive PCA graph with plotly
+pca_plot <- plot_ly(data = pca_df, x = ~PC1, y = ~PC2, color = ~NCAA_Tourney, text = ~Team, type = "scatter", mode = "markers",
+                    marker = list(size = 10, opacity = 0.8)) %>%
+  layout(title = "Interactive PCA Graph of Features",
+         xaxis = list(title = "Principal Component 1"),
+         yaxis = list(title = "Principal Component 2"),
+         showlegend = TRUE,
+         hoverlabel = list(bgcolor = "white"))
+
+# Show the interactive PCA graph
+pca_plot
 ```
