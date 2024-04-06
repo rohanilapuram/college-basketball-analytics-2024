@@ -525,3 +525,38 @@ ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
   theme(legend.position = "bottom")
 
 ```
+
+
+## KNN classification 
+
+
+```{r}
+
+library(class)
+library(caret)
+set.seed(42)
+
+# Generate random indices for splitting
+indices <- sample(1:nrow(merged_df), size = 0.8 * nrow(merged_df), replace = FALSE)
+
+# Create training and test datasets
+train_data <- merged_df[indices, ]
+test_data <- merged_df[-indices, ]
+
+X_train <- train_data[, c(  "SOS", "Rk", "OE", "DE", "Conference Wins")]
+y_train <- train_data$NCAA_Tourney
+X_test <- test_data[, c( "SOS", "Rk", "OE", "DE", "Conference Wins")]
+y_test <- test_data$NCAA_Tourney
+
+# Create KNN classifier
+k <- 7  # Number of neighbors
+knn_model <- knn(train = X_train, test = X_test, cl = y_train, k = k)
+
+# Evaluate the model
+accuracy <- mean(knn_model == y_test)
+cat("Accuracy of KNN classifier:", accuracy, "\n")
+
+conf_matrix <- confusionMatrix(knn_model, y_test)
+print(conf_matrix)
+length(y_test)
+```
