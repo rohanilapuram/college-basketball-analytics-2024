@@ -101,6 +101,53 @@ table = page %>% html_nodes("table#ratings-table") %>%
   html_table() %>% .[[1]]
 cbb_df = data.frame(table)
 
+data = read.csv("CBBData.csv")
+cbb_df2 = data.frame(data)
+cbb_df2$NCAA_Tourney <- ifelse(grepl("NCAA", cbb_df2$School), "Yes", "No")
+cbb_df2$School = gsub(" NCAA", "", cbb_df2$School)
+
+names(cbb_df2)[names(cbb_df2) == "W.L."] = "Win_Loss_Percentage"
+names(cbb_df2)[names(cbb_df2) == "W.1"] = "Conference Wins"
+names(cbb_df2)[names(cbb_df2) == "L.1"] = "Conference Losses"
+names(cbb_df2)[names(cbb_df2) == "W.2"] = "Home_W"
+names(cbb_df2)[names(cbb_df2) == "L.2"] = "Home_L"
+names(cbb_df2)[names(cbb_df2) == "W.3"] = "Away_W"
+names(cbb_df2)[names(cbb_df2) == "L.3"] = "Away_L"
+names(cbb_df2)[names(cbb_df2) == "Tm."] = "Points_For"
+names(cbb_df2)[names(cbb_df2) == "Opp."] = "Points_Against"
+names(cbb_df2)[names(cbb_df2) == "FG."] = "FG_Perecntage"
+names(cbb_df2)[names(cbb_df2) == "X3P"] = "3P"
+names(cbb_df2)[names(cbb_df2) == "X3PA"] = "3PA"
+names(cbb_df2)[names(cbb_df2) == "X3P."] = "3P_Percentage"
+names(cbb_df2)[names(cbb_df2) == "FT."] = "FT_Percentage"
+ready_to_merge = cbb_df2[-c(1,3,4,5,7,8)]
+
+ready_to_merge$`Conference Wins` = as.numeric(ready_to_merge$`Conference Wins`)
+ready_to_merge$`Conference Losses` = as.numeric(ready_to_merge$`Conference Losses`)
+ready_to_merge$Home_W = as.numeric(ready_to_merge$Home_W)
+ready_to_merge$Home_L = as.numeric(ready_to_merge$Home_L)
+ready_to_merge$Away_W = as.numeric(ready_to_merge$Away_W)
+ready_to_merge$Away_L = as.numeric(ready_to_merge$Away_L)
+ready_to_merge$Points_For = as.numeric(ready_to_merge$Points_For)
+ready_to_merge$Points_Against = as.numeric(ready_to_merge$Points_Against)
+ready_to_merge$MP = as.numeric(ready_to_merge$MP)
+ready_to_merge$FG = as.numeric(ready_to_merge$FG)
+ready_to_merge$FGA = as.numeric(ready_to_merge$FGA)
+ready_to_merge$FG_Perecntage = as.numeric(ready_to_merge$FG_Perecntage)
+ready_to_merge$`3P` = as.numeric(ready_to_merge$`3P`)
+ready_to_merge$`3P_Percentage` = as.numeric(ready_to_merge$`3P_Percentage`)
+ready_to_merge$FT = as.numeric(ready_to_merge$FT)
+ready_to_merge$FTA = as.numeric(ready_to_merge$FTA)
+ready_to_merge$FT_Percentage = as.numeric(ready_to_merge$FT_Percentage)
+ready_to_merge$ORB = as.numeric(ready_to_merge$ORB)
+ready_to_merge$TRB = as.numeric(ready_to_merge$TRB)
+ready_to_merge$AST = as.numeric(ready_to_merge$AST)
+ready_to_merge$STL = as.numeric(ready_to_merge$STL)
+ready_to_merge$BLK = as.numeric(ready_to_merge$BLK)
+ready_to_merge$TOV = as.numeric(ready_to_merge$TOV)
+ready_to_merge$PF = as.numeric(ready_to_merge$PF)
+ready_to_merge$NCAA_Tourney = as.factor(ready_to_merge$NCAA_Tourney)
+
 new_column_names = cbb_df[1, ]
 names(cbb_df) = new_column_names
 cbb_df = cbb_df[-1, ]
@@ -132,6 +179,55 @@ names(cbb_df)[names(cbb_df) == "AdjD"] = "DE"
 names(cbb_df)[names(cbb_df) == "AdjT"] = "Tempo"
 names(cbb_df)[names(cbb_df) == "AdjEM.1"] = "SOS"
 names(cbb_df)[names(cbb_df) == "AdjEM.2"] = "NCSOS"
+cbb_df$Team = trimws(cbb_df$Team)
+ready_to_merge$School = trimws(ready_to_merge$School)
+cbb_df$Team = gsub(" St\\.$", " State", cbb_df$Team)
+ready_to_merge$School = gsub("-", " ", ready_to_merge$School)
+ready_to_merge$School = gsub("Brigham Young", "BYU", ready_to_merge$School)
+ready_to_merge$School = gsub("NC State", "N.C. State", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern Methodist", "SMU", ready_to_merge$School)
+ready_to_merge$School = gsub("Nevada Las Vegas", "UNLV", ready_to_merge$School)
+ready_to_merge$School = gsub("Virginia Commonwealth", "VCU", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern California", "USC", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola", "Loyola Chicago", ready_to_merge$School)
+ready_to_merge$School = gsub("Louisiana State", "LSU", ready_to_merge$School)
+ready_to_merge$School = gsub("College of Charleston", "Charleston", ready_to_merge$School)
+ready_to_merge$School = gsub("Sam Houston", "Sam Houston State", ready_to_merge$School)
+ready_to_merge$School = gsub("Massachusetts Lowell", "UMass Lowell", ready_to_merge$School)
+ready_to_merge$School = gsub("Texas A&M Corpus Christi", "Texas A&M Corpus Chris", ready_to_merge$School)
+ready_to_merge$School = gsub("California Baptist", "Cal Baptist", ready_to_merge$School)
+ready_to_merge$School = gsub("Pennsylvania", "Penn", ready_to_merge$School)
+ready_to_merge$School = gsub("Kansas City", "UMKC", ready_to_merge$School)
+ready_to_merge$School = gsub("Bowling Green State", "Bowling Green", ready_to_merge$School)
+ready_to_merge$School = gsub("Southern Mississippi", "Southern Miss", ready_to_merge$School)
+ready_to_merge$School = gsub("Grambling", "Grambling State", ready_to_merge$School)
+ready_to_merge$School = gsub("Omaha", "Nebraska Omaha", ready_to_merge$School)
+ready_to_merge$School = gsub("Central Connecticut State", "Central Connecticut", ready_to_merge$School)
+ready_to_merge$School = gsub("Maryland Baltimore County", "UMBC", ready_to_merge$School)
+ready_to_merge$School = gsub("Florida International", "FIU", ready_to_merge$School)
+ready_to_merge$School = gsub("South Carolina Upstate", "USC Upstate", ready_to_merge$School)
+ready_to_merge$School = gsub("FDU", "Fairleigh Dickinson", ready_to_merge$School)
+ready_to_merge$School = gsub("Texas Rio Grande Valley", "UT Rio Grande Valley", ready_to_merge$School)
+ready_to_merge$School = gsub("Prairie View", "Prairie View A&M", ready_to_merge$School)
+ready_to_merge$School = gsub("Long Island University", "LIU", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Northridge", "Cal St. Northridge", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Fullerton", "Cal St. Fullerton", ready_to_merge$School)
+ready_to_merge$School = gsub("Cal State Bakersfield", "Cal St. Bakersfield", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago Marymount", "Loyola Marymount", ready_to_merge$School)
+ready_to_merge$School = gsub("\\s*\\(([^\\)]+)\\)", " \\1", ready_to_merge$School)
+ready_to_merge$School = gsub("Saint Mary's CA", "Saint Mary's", ready_to_merge$School)
+ready_to_merge$School = gsub("St. John's NY", "St. John's", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago IL", "Loyola Chicago", ready_to_merge$School)
+ready_to_merge$School = gsub("Albany NY", "Albany", ready_to_merge$School)
+ready_to_merge$School = gsub("Queens NC", "Queens", ready_to_merge$School)
+ready_to_merge$School = gsub("Saint Francis PA", "Saint Francis", ready_to_merge$School)
+ready_to_merge$School = gsub("Loyola Chicago MD", "Loyola MD", ready_to_merge$School)
+
+merged_df = merge(cbb_df, ready_to_merge, by.x = "Team", by.y = "School", all.x = TRUE)
+merged_df = merged_df[order(merged_df$Rk), ]
+rownames(merged_df) = merged_df$Rk
+merged_df[295, ]$`Conference Wins` = merged_df[295, ]$Wins
+merged_df[295, ]$`Conference Losses` = merged_df[295, ]$Losses
 ```
 
 ### Fitting a MLR 
@@ -378,9 +474,7 @@ For our specific ridge regression model, the coefficients and variables are subs
 
 ```{r}
 # Predictions from the linear regression model
-lm_model <- lm(y_train ~ X_train)
-length(X_train)
-summary(lm_model)
+lm_model = lm(y_train ~ X_train)
 lm_predictions <- predict(lm_model, newdata = as.data.frame(X_test))
 
 # Predictions from the ridge regression model
