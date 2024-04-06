@@ -378,6 +378,9 @@ For our specific ridge regression model, the coefficients and variables are subs
 
 ```{r}
 # Predictions from the linear regression model
+lm_model <- lm(y_train ~ X_train)
+length(X_train)
+summary(lm_model)
 lm_predictions <- predict(lm_model, newdata = as.data.frame(X_test))
 
 # Predictions from the ridge regression model
