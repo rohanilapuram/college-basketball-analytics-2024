@@ -506,4 +506,22 @@ cat("RMSE:", rmse_ridge, "\n")
 ```
 
 
+## LOESS
+```{r}
+library(fANCOVA)
+fit.loess.opt <- with(merged_df, 
+                 loess.as(`3P_Percentage`, OE, degree = 1, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = F))
+summary(fit.loess.opt)
 
+library(fANCOVA)
+fit.loess.opt <- with(merged_df, 
+                 loess.as(`3P_Percentage`, OE, degree = 2, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = F))
+summary(fit.loess.opt)
+
+ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
+  geom_smooth(method = "loess", span = 0.4843714, se = F, method.args = list(degree = 1), aes(color = "degree 1")) + 
+  geom_smooth(method = "loess", span = 0.6612838, se = F, method.args = list(degree = 2), aes(color = "degree 2")) + 
+  scale_color_manual(name = "Degree", breaks = c("degree 1", "degree 2"), values = c("red", "blue")) +
+  theme(legend.position = "bottom")
+
+```
