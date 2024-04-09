@@ -1,48 +1,28 @@
 ---
-title: "CMDA-4654"
-subtitle: "Project 1"
-author: "Matthew Hill and Rohan Reddy Illapuram"
-date: "April 1, 2024"
+title: "2024 College Basketball Analysis"
 output:
-  pdf_document:
-    highlight: haddock
-keep_tex: no
-number_sections: no
-html_document:
-  df_print: paged
-geometry: margin = 0.5in
-header-includes:
-- \usepackage{booktabs}
-- \usepackage{longtable}
-- \usepackage{array}
-- \usepackage{multirow}
-- \usepackage{wrapfig}
-- \usepackage{float}
-- \usepackage{colortbl}
-- \usepackage{pdflscape}
-- \usepackage{tabu}
-- \usepackage{threeparttable}
-- \usepackage{threeparttablex}
-- \usepackage[normalem]{ulem}
-- \usepackage{makecell}
-- \usepackage{xcolor}
-- \usepackage{amsmath}
-editor_options:
-  chunk_output_type: inline
-documentclass: article
-urlcolor: blue
+  flexdashboard::flex_dashboard:
+    orientation: columns  # Adjust orientation as needed
+    theme: spacelab
+    fontsize: 12pt
+    
 ---
-  
-<!-- The above is set to automatically compile to a .pdf file.   -->
-<!-- It will only succeed if LaTeX is installed. -->
-  
-<!-- If you absolutely can't get LaTeX installed and/or working, then you can compile to a .html first,  -->
-<!-- by clicking on the arrow button next to knit and selecting Knit to HTML. -->
 
-<!-- You must then print you .html file to a .pdf by using first opening it in a web browser and then printing to a .pdf -->
 
+<style type="text/css">
+
+li {font-size: 20px;}
+.chart-title {  /* chart_title  */
+   font-size: 18px;
+   font-family: Algerian;
+   
+.highcharts-container { /* Change font size of content within Highcharts */
+    font-size: 12px; /* Adjust the font size as needed */
+  }
+</style>
 
 ```{r setup, include=FALSE}
+library(flexdashboard)
 # This is the setup chunk
 #  Here you can set global options for the entire document
 
@@ -57,44 +37,14 @@ library(GGally)
 library(MASS)
 library(leaps)
 
-# Although you can call functions from a library using the following notation
-#  without loading the entire library.
-knitr::opts_chunk$set(echo = TRUE, 
-                      comment = NA, # Required
-                      fig.path = "./figures/",  # Store all figures here in relative path (make the folder first)
-                      fig.align = "center",
-                      fig.width = 7,
-                      fig.height = 7,
-                      message = FALSE, # Turn off load messages
-                      warning = FALSE # Turn off warnings
-                      )
 
 ```
 
-\clearpage
-
-```{r include=FALSE}
-# You should not echo this chunk.
-# include=FALSE does more than echo=FALSE, it actually does: echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.show='hide'
-
-# You should set your working directory at the very beginning of your R Markdown file
-#setwd("/Users/matthewhill/Documents/VT/Junior/CMDA 4654/Project 1/P1_CMDA4654")
-
-# In linux ~/ is shorthand for /home/username/
-# You should type things out properly for your system
-# Mac: /Users/matthewhill/Documents/VT/Junior/CMDA 4654/
-# Windows: C:/Users/username/Documents/etc/Lecture/Lecture_03/.../
 
 
-```
 
-<!-- ---------------------------------------------------------------------------------------------------- -->
-<!-- ---------------- Homework Problems start below these lines ----------------------------------------- -->
-<!-- ---------------------------------------------------------------------------------------------------- -->
+```{r, include=FALSE}
 
-
-### Web Scraping Data and Cleaning Data
-```{r}
 link = "https://kenpom.com/"
 page = read_html(link)
 table = page %>% html_nodes("table#ratings-table") %>%
@@ -228,9 +178,17 @@ merged_df = merged_df[order(merged_df$Rk), ]
 rownames(merged_df) = merged_df$Rk
 merged_df[295, ]$`Conference Wins` = merged_df[295, ]$Wins
 merged_df[295, ]$`Conference Losses` = merged_df[295, ]$Losses
+
 ```
 
+
+# MLR
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
 ### Fitting a MLR 
+
 ```{r}
 ## Full Model with all variables
 power_5 = c("ACC", "Big 12", "Big Ten", "Pac-12", "SEC")
@@ -279,7 +237,11 @@ predictive_data[which(cd > 0.6), ]
 cbb_df[43, ]
 ```
 
+Column {data-width=350}
+-----------------------------------------------------------------------
+
 ### Exhaustive Model Approach
+
 ```{r}
 regit.full = regsubsets(Wins ~ OE + DE + Tempo + Luck + OppO + OppD + NCSOS, data = predictive_data, method = 'exhaustive', nbest = 1)
 output = summary(regit.full, all.best = TRUE)
@@ -290,6 +252,7 @@ results_mat
 ```
 
 ### Analyzing what was found to be the best model
+
 ```{r}
 best_mdl = lm(Wins ~ OE + DE + Tempo + Luck + OppD + NCSOS, data = predictive_data)
 summary(best_mdl)
@@ -311,7 +274,14 @@ shapiro.test(student_r)
 ```
 
 
-### Ridge regression
+# Ridge regression
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
 
 Ridge regression is a regularization technique(Method in statistics used to reduce error caused by overfitting of data) for linear regression models. Used to get rid of overfitting in training data we use for our model. It is also know as L2 regularization. Problem that is solved using this regression is "Multicollinearity". In this technique of regilarization we add a bias into the model for decreasing model's variance. 
 
@@ -328,46 +298,6 @@ $\lambda$ is the regularization parameter (also known as the ridge parameter or 
 $p$ is the number of predictor variables (features) in the regression model.\
 $\beta_j$ represents the coefficients (weights) associated with each predictor variable. \
 
-
-
-
-
-```{r}
-library(ggplot2)
-library(reshape2)  # For melt() function
-
-# Assuming 'cbb_df' is your data frame containing the data
-# Extract the relevant columns for correlation analysis
-cols_of_interest <- c("Wins", "Losses", "EM", "OE", "DE", "Tempo", "Luck", "SOS", "OppO", "OppD", "NCSOS")
-data_subset <- cbb_df[, cols_of_interest]
-
-# Calculate the correlation matrix
-correlation_matrix <- cor(data_subset)
-
-# Convert the correlation matrix to long format for ggplot
-correlation_data <- melt(correlation_matrix)
-
-# Create the correlation heatmap using ggplot2
-heatmap <- ggplot(correlation_data, aes(Var1, Var2, fill = value)) +
-  geom_tile() +
-  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
-  scale_fill_gradient(low = "white", high = "red", na.value = "grey50", name = "Correlation") +
-  labs(title = "Correlation Heatmap", x = NULL, y = NULL) +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    legend.position = "bottom",
-    legend.direction = "horizontal",
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_blank()
-  )
-
-heatmap
-
-```
-
-Research Question: 
 
 ```{r}
 # Load the necessary libraries
@@ -387,14 +317,10 @@ y_train <- y[train_indices]
 X_test <- X[-train_indices, ]
 y_test <- y[-train_indices]
 
-# Perform linear regression on the training data
+
 
 ridge_model <- cv.glmnet(x = X_train, y = y_train, alpha = 0)  # alpha = 0 for ridge regression
 
-```
-
-## Making predictions using ridge model
-```{r}
 # Get the optimal lambda value chosen by cross-validation
 optimal_lambda <- ridge_model$lambda.min  # You can also use `lambda.1se` for a more regularized model
 
@@ -435,7 +361,8 @@ ridge.plot <- plot_ly(x = X_train[,"OE"], y = X_train[,"SOS"], z = y_train,
   layout(title = "3D Scatter Plot of Training Data",
          scene = list(xaxis = list(title = "OE"), 
                       yaxis = list(title = "SOS"), 
-                      zaxis = list(title = "Wins")))
+                      zaxis = list(title = "Wins")),
+         width = 800, height = 600)
 
 # Add the plane using the grid points
 ridge.plot <- add_surface(p = ridge.plot,
@@ -448,11 +375,19 @@ ridge.plot <- add_surface(p = ridge.plot,
                           colorscale = "Viridis")
 
 ridge.plot
-z = matrix(grid_points$Wins, nrow = length(unique(grid_points$OE)), ncol = length(unique(grid_points$SOS)), byrow = TRUE)
-length(z)
-
 ```
 
+
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Making predictions using ridge model
+
+```{r}
+
+```
 To obtain the equation of the ridge regression model, we first fitted the model using cross-validated ridge regression with the `cv.glmnet` function in R. This function selects an optimal lambda value through cross-validation. \
 
 After fitting the ridge regression model, we extracted the coefficients corresponding to the optimal lambda value. The coefficients represent the weights assigned to each predictor variable in the model. \ 
@@ -472,66 +407,39 @@ For our specific ridge regression model, the coefficients and variables are subs
 \text{Wins} = -61.7454572 + 0.7459537 \times \text{OE} - 0.2537968 \times \text{SOS}
 \]
 
-```{r}
-# Predictions from the linear regression model
-lm_model = lm(y_train ~ X_train)
-lm_predictions <- predict(lm_model, newdata = as.data.frame(X_test))
+### Chart C
 
-# Predictions from the ridge regression model
+```{r}
 ridge_predictions <- predict(ridge_model, newx = X_test, s = optimal_lambda)
 
 # Calculate Mean Squared Error (MSE)
-mse_lm <- mean((y_test - lm_predictions)^2)
 mse_ridge <- mean((y_test - ridge_predictions)^2)
 
 # Calculate R-squared (R2)
-rsquared_lm <- 1 - (sum((y_test - lm_predictions)^2) / sum((y_test - mean(y_test))^2))
 rsquared_ridge <- 1 - (sum((y_test - ridge_predictions)^2) / sum((y_test - mean(y_test))^2))
 
 # Calculate Root Mean Squared Error (RMSE)
-rmse_lm <- sqrt(mse_lm)
 rmse_ridge <- sqrt(mse_ridge)
 
 # Print the results
-cat("Linear Regression Model:\n")
-cat("MSE:", mse_lm, "\n")
-cat("R-squared:", rsquared_lm, "\n")
-cat("RMSE:", rmse_lm, "\n\n")
-
 cat("Ridge Regression Model:\n")
 cat("MSE:", mse_ridge, "\n")
 cat("R-squared:", rsquared_ridge, "\n")
 cat("RMSE:", rmse_ridge, "\n")
-
 ```
 
 
-## LOESS
-```{r}
-library(fANCOVA)
-fit.loess.opt <- with(merged_df, 
-                 loess.as(`3P_Percentage`, OE, degree = 1, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = F))
-summary(fit.loess.opt)
+# KNN Classification
 
-library(fANCOVA)
-fit.loess.opt <- with(merged_df, 
-                 loess.as(`3P_Percentage`, OE, degree = 2, criterion = c("aicc", "gcv")[2], user.span = NULL, plot = F))
-summary(fit.loess.opt)
+Column {data-width=450}
+-----------------------------------------------------------------------
 
-ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
-  geom_smooth(method = "loess", span = 0.4843714, se = F, method.args = list(degree = 1), aes(color = "degree 1")) + 
-  geom_smooth(method = "loess", span = 0.6612838, se = F, method.args = list(degree = 2), aes(color = "degree 2")) + 
-  scale_color_manual(name = "Degree", breaks = c("degree 1", "degree 2"), values = c("red", "blue")) +
-  theme(legend.position = "bottom")
+### Chart A
 
-```
-
-
-## KNN classification 
+We are performing $\textbf{k-Nearest Neighbors (kNN)}$ classification on a dataset with predictors $\textbf{"SOS" (Strength of Schedule)}$ and $\textbf{"DE" (Defensive Efficiency)}$, $\textbf{"Tempo"}$ categorizing teams based on their win-loss percentages into four categories: $\textbf{“Successful", “Above Average", “Average,"}$ and $\textbf{“Below Average"}$. It splits the data into training and test sets, trains a kNN classifier with $\textbf{k=7}$ neighbors, and evaluates its accuracy, providing insights into team categorization based on performance metrics.
 
 
 ```{r}
-
 library(class)
 library(caret)
 library(RColorBrewer)
@@ -546,52 +454,24 @@ indices <- sample(1:nrow(merged_df), size = 0.8 * nrow(merged_df), replace = FAL
 train_data <- merged_df[indices, ]
 test_data <- merged_df[-indices, ]
 
-X_train <- as.data.frame(train_data[, c("SOS", "DE", "Tempo")])
+X_train <- as.data.frame(train_data[, c("SOS", "DE", "Tempo" )])
 y_train <- train_data$team_cat
 X_test <- as.data.frame(test_data[, c("SOS", "DE", "Tempo")])
 y_test <- test_data$team_cat
 
+knitr::kable(head(merged_df[,c("SOS", "DE", "Tempo", "team_cat")]))
+
 # Create KNN classifier
-k <- 11  # Number of neighbors
+k <- 7  # Number of neighbors
 knn_model <- knn(train = X_train, test = X_test, cl = y_train, k = k)
 # Evaluate the model
 accuracy <- mean(knn_model == y_test)
 cat("Accuracy of KNN classifier:", accuracy, "\n")
 
-knitr::kable(head(merged_df[,c("SOS", "DE", "Tempo", "team_cat")]))
 
 ```
 
-
-```{r}
-k_values <- seq(1, 50, by = 1)
-
-# Initialize a vector to store accuracies
-accuracies <- numeric(length(k_values))
-
-# Loop through each K value and train a KNN model
-for (i in seq_along(k_values)) {
-  knn_model <- knn(train = X_train, test = X_test, cl = y_train, k = k_values[i])
-  accuracies[i] <- mean(knn_model == y_test)
-}
-
-# Create a data frame for plotting
-accuracy_df <- data.frame(K = k_values, Accuracy = accuracies)
-
-max_accuracy_index <- which.max(accuracy_df$Accuracy)
-
-# Plot accuracies vs. K values with highlighted point
-ggplot(data = accuracy_df, aes(x = K, y = Accuracy)) +
-  geom_line() +
-  geom_point() +
-  geom_point(data = accuracy_df[max_accuracy_index, ], aes(x = K, y = Accuracy), color = "red", size = 3) +  # Highlight point with red color and larger size
-  labs(title = "Accuracies vs. K Values",
-       x = "K Value",
-       y = "Accuracy") +
-  theme_minimal()
-```
-
-## PCA plot
+#### PCA 
 
 ```{r}
 pca_result <- prcomp(train_data[, c("SOS", "DE", "Tempo")], scale. = TRUE)
@@ -612,39 +492,52 @@ pca_plot <- plot_ly(data = pca_df, x = ~PC1, y = ~PC2, color = ~team_cat, text =
 
 # Show the interactive PCA graph
 pca_plot
+
 ```
 
-## Logistic
+The above graph is obtained after performing Principal Component Analysis (PCA) on the $\textbf{SOS}$, $\textbf{DE}$, and $\textbf{Tempo}$ variables from the $\textbf{train_data}$. It converts the PCA results into a data frame and creates an interactive scatter plot using plotly, where each data point represents a team. The plot displays the teams in a two-dimensional space based on the first two principal components ($\textbf{PC1}$ and $\textbf{PC2}$), with color indicating the $\textbf{team_cat}$ variable (team category) and team names shown as hover text.
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### K value vs Accuracies
+
+#### Ploting Accuracy for various values of K
 
 ```{r}
-merged_df$Track <- ifelse(merged_df$Win_Loss_Percentage > 0.50, "Winning Track", "Losing Track")
+k_values <- seq(1, 50, by = 1)
 
-# Load required libraries
-library(caret)
-library(dplyr)
+# Initialize a vector to store accuracies
+accuracies <- numeric(length(k_values))
 
-# Assuming merged_df contains your data as a DataFrame with columns "Track", "Tempo", and "Luck"
+# Loop through each K value and train a KNN model
+for (i in seq_along(k_values)) {
+  knn_model <- knn(train = X_train, test = X_test, cl = y_train, k = k_values[i])
+  accuracies[i] <- mean(knn_model == y_test)
+}
 
-# Encode "Track" column into binary values
-merged_df <- merged_df %>%
-  mutate(Track = ifelse(Track == "Winning Track", 1, 0)) 
+# Create a data frame for plotting
+accuracy_df <- data.frame(K = k_values, Accuracy = accuracies)
 
-# Split the data into training and test sets
-set.seed(42)
-train_indices <- createDataPartition(df$Track, p = 0.8, list = FALSE)
-train_data <- merged_df[train_indices, ]
-test_data <- merged_df[-train_indices, ]
+max_accuracy_index <- which.max(accuracy_df$Accuracy)
 
-# Create a logistic regression model
-log_model <- glm(Track ~ Tempo, data = train_data, family = binomial)
-
-# Make predictions on the test set
-predictions <- predict(log_model, newdata = test_data, type = "response")
-
-
-
-# Evaluate the model
-accuracy <- mean(predicted_classes == test_data$Track)
-cat("Accuracy of Logistic Regression model:", accuracy, "\n")
+# Plot accuracies vs. K values with highlighted point
+plot_ly(data = accuracy_df, x = ~K, y = ~Accuracy, type = "scatter", mode = "lines+markers") %>%
+  add_markers(data = accuracy_df[max_accuracy_index, ], color = I("red"), size = 3) %>%
+  layout(title = "Accuracies vs. K Values",
+         xaxis = list(title = "K Value"),
+         yaxis = list(title = "Accuracy"),
+         hoverlabel = list(bgcolor = "white"))
 
 ```
+
+
+
+
+Above plot is a comprehensive evaluation of KNN models with varying numbers of neighbors (K) ranging from 1 to 50. It calculates the accuracy of each KNN model by comparing its predictions on the test dataset against the actual labels.We identify the K value that achieves the highest accuracy and highlights this optimal point in the plot using a distinctive red color
+
+
+### Chart C
+
+
