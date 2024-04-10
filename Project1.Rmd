@@ -181,14 +181,72 @@ merged_df[295, ]$`Conference Losses` = merged_df[295, ]$Losses
 
 ```
 
+# Dataset Description
+
+Column {data-width=550}
+-----------------------------------------------------------------------
+
+The focus of our dashboard is to explore the interactions between multiple factors collected from NCAA Basketball teams this season. We gathered our data from two online sources. Our first data set was web scraped from ["kenpom.com"](https://kenpom.com/) and our second data set was downloaded from ["sports-reference.com"](https://www.sports-reference.com/cbb/schools/). We merged the two datasets on the name of the college in order to increase our number of variables, allowing us to have more avenues to go down when doing our analysis. Our final data set has 41 variables and 362 observations. 
+
+```{r}
+column_descriptions = c("Team Name",
+                        "National Rank",
+                        "Conference",
+                        "Number of Games Won",
+                        "Number of Games Lost",
+                        "Efficiency Margin",
+                        "Offensive Efficiency",
+                        "Defensive Efficieny",
+                        "Tempo (amount of possesions per game)",
+                        "Luck Rating",
+                        "Strength of Schedule",
+                        "Opposition Offensive Efficiency",
+                        "Opposition Defensive Efficiency",
+                        "Non-Conference Strength of Schedule",
+                        "Win-Loss Percentage",
+                        "Number of Conference Games Won",
+                        "Number of Conference Games Lost",
+                        "Home Games Won",
+                        "Home Games Lost", 
+                        "Away Games Won",
+                        "Away Games Lost",
+                        "Total Points Scored",
+                        "Total Points Given Up",
+                        "Minutes Played",
+                        "Field Goals Made",
+                        "Field Goals Attempted",
+                        "Field Goal Percentage",
+                        "3-Pointers Made",
+                        "3-Pointers Attempted",
+                        "3-Pointer Percentage",
+                        "Free-throws made",
+                        "Free-throws Attempted", 
+                        "Free-throw Percentage",
+                        "Offensive Rebounds",
+                        "Total Rebounds",
+                        "Assists",
+                        "Steals",
+                        "Blocks",
+                        "Turnovers",
+                        "Personal Fouls",
+                        "Made the NCAA Torunament"
+                        )
+
+df = data.frame(colnames(merged_df[1:41]), column_descriptions)
+table = kable(df, col.names = c("Varaible", "Variable Description"))
+table
+```
+
 
 # MLR
 
-Column {data-width=650}
+Column {data-width=550}
 -----------------------------------------------------------------------
 
-### Fitting a MLR 
+### Research Question
+What factors contribute to the number of wins a team achieves in college basketball, and how accurately can a multiple linear regression (MLR) model predict the win count based on these factors?
 
+#### Fitting a MLR with all predictors
 ```{r}
 ## Full Model with all variables
 power_5 = c("ACC", "Big 12", "Big Ten", "Pac-12", "SEC")
@@ -199,13 +257,21 @@ predictive_data = predictive_data[ ,-c(2,3)]
 full_mdl = lm(Wins ~ ., data = predictive_data)
 summary(full_mdl)
 vif(full_mdl)
+```
 
+#### Reducing the model to elimate collinearity between predictors
+```{r}
 ## Reduced model to eliminate multicollinearity
 reduced_mdl = lm(Wins ~ OE + DE + Tempo + Luck + OppO + OppD + NCSOS, data = predictive_data)
 summary(reduced_mdl)
 vif(reduced_mdl)
 avPlots(reduced_mdl)
+```
+\newline
+From the Added-Variable Plots we can see that there is a linear relationship between almost all of the predictors and our response variable.
 
+#### Checking the Assumptions of our model
+```{r}
 ## Assumptions
 student_r = rstudent(reduced_mdl)
 fitted_values = reduced_mdl$fitted.values
@@ -218,7 +284,10 @@ qqnorm(student_r)
 abline(0,1,col='red')
 hist(student_r)
 shapiro.test(student_r)
+```
 
+#### Outlier Analysis
+```{r}
 ## Outliers
 plot(fitted_values, student_r, xlab = 'Fitted Values', ylab = 'Studentized Residuals', main = 'Student vs Fitted')
 abline(0,0, col = 'blue')
@@ -234,14 +303,14 @@ cd = cooks.distance(reduced_mdl)
 plot(cd, ylab = 'Cooks Distance', xlab = 'Observation Index', main = 'Cooks Distance Plot')
 abline(h = 0.1, col = 'black')
 predictive_data[which(cd > 0.6), ]
-cbb_df[43, ]
+cbb_df[45, ]
 ```
+Interesting to see that N.C. State is an outlier. This is a team that went on a historic run to end the season, which could be causing them to become an influential point. Since they are not effecting our assumptions and are not an incorrect data point we will not do anything to remove them.
 
-Column {data-width=350}
+Column {data-width=450}
 -----------------------------------------------------------------------
 
 ### Exhaustive Model Approach
-
 ```{r}
 regit.full = regsubsets(Wins ~ OE + DE + Tempo + Luck + OppO + OppD + NCSOS, data = predictive_data, method = 'exhaustive', nbest = 1)
 output = summary(regit.full, all.best = TRUE)
@@ -252,11 +321,9 @@ results_mat
 ```
 
 ### Analyzing what was found to be the best model
-
 ```{r}
-best_mdl = lm(Wins ~ OE + DE + Tempo + Luck + OppD + NCSOS, data = predictive_data)
+best_mdl = lm(Wins ~ OE + DE + Luck + NCSOS, data = predictive_data)
 summary(best_mdl)
-vif(best_mdl)
 avPlots(best_mdl)
 
 ## Assumptions
@@ -272,6 +339,8 @@ abline(0,1,col='red')
 hist(student_r)
 shapiro.test(student_r)
 ```
+\newline
+The model that we found to be the best at predicting the number of wins a team will get is: $$Wins = 12.20368 + 0.73x_{OE} - 0.75x_{DE} + 28.63x_{Luck} - -0.18x_{NCSOS}$$
 
 
 # Ridge regression
@@ -281,7 +350,11 @@ shapiro.test(student_r)
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Research Question and What is ridge regression?
+
+**Question**: What is the relation between Wins , SOS and OE, how accurately can predict Wins using SOS and OE by constructing a Ridge model? \
+
+**Ridge Regression**
 
 Ridge regression is a regularization technique(Method in statistics used to reduce error caused by overfitting of data) for linear regression models. Used to get rid of overfitting in training data we use for our model. It is also know as L2 regularization. Problem that is solved using this regression is "Multicollinearity". In this technique of regilarization we add a bias into the model for decreasing model's variance. 
 
@@ -299,6 +372,7 @@ $p$ is the number of predictor variables (features) in the regression model.\
 $\beta_j$ represents the coefficients (weights) associated with each predictor variable. \
 
 
+#### 3D Interactive plot of model.
 ```{r}
 # Load the necessary libraries
 library(glmnet)
@@ -380,13 +454,17 @@ ridge.plot
 
 
 
+3D scatter plot of the training data, where the x-axis represents offensive efficiency (OE), the y-axis represents the strength of schedule (SOS), and the z-axis represents the number of wins (Wins). Each data point is represented as a marker in the plot,
+
+
+
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Making predictions using ridge model
+### Making model equation for ridge regression
 
 ```{r}
-
+summary(ridge_model)
 ```
 To obtain the equation of the ridge regression model, we first fitted the model using cross-validated ridge regression with the `cv.glmnet` function in R. This function selects an optimal lambda value through cross-validation. \
 
@@ -404,10 +482,10 @@ Where: \
 For our specific ridge regression model, the coefficients and variables are substituted into the equation to form the final equation, which can be written in the form: \
 
 \[
-\text{Wins} = -61.7454572 + 0.7459537 \times \text{OE} - 0.2537968 \times \text{SOS}
+\text{Wins} = -61.34 + 0.75 \times \text{OE} - 0.27 \times \text{SOS}
 \]
 
-### Chart C
+### R-squarted for this model
 
 ```{r}
 ridge_predictions <- predict(ridge_model, newx = X_test, s = optimal_lambda)
@@ -429,12 +507,81 @@ cat("RMSE:", rmse_ridge, "\n")
 ```
 
 
+These values suggest that the ridge regression model is moderately effective in predicting basketball team wins based on offensive efficiency and strength of schedule. However, there is still room for improvement as indicated by the non-zero MSE and RMSE values.
+ 
+# LOESS Fit
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Research Question
+What is the nature of the relationship between offensive efficiency (OE) and three-pointer percentage (3P%) in basketball, and how does the application of a loess fit compared to traditional linear regression enhance our understanding of this relationship? As the three-pointer percentage increases, offensive efficiency is expected to increase as well, as making three-pointers contributes more points per possession compared to two-point field goals. However, the relationship may not be strictly linear, and a loess fit may capture the non-linear patterns more accurately than a linear regression model.
+
+### Fitting a simple linear model to our parameters
+```{r}
+lm_mdl = lm(OE ~ `3P_Percentage`, data = merged_df)
+
+ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
+  geom_smooth(method = "lm")
+
+```
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Fitting an optimal LOESS Regression line with degree = 1
+
+#### Plot 1
+```{r}
+ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
+  geom_smooth(method = "loess", span = 0.4843714, se = F, method.args = list(degree = 1), color = "red")
+```
+
+#### Summary
+```{r}
+loess_fit = loess(merged_df$OE ~ merged_df$`3P_Percentage`, data = merged_df, span = 0.4843714, degree = 1)
+results = summary(loess_fit)
+results
+```
+
+
+
+### Fitting an optimal LOESS Regression line with degree = 2
+
+#### Plot 2
+
+```{r}
+ggplot(merged_df, aes(x = `3P_Percentage`, y = OE)) + geom_point() +
+  geom_smooth(method = "loess", span = 0.6612838, se = F, method.args = list(degree = 2), color = "blue")
+```
+
+#### Summary
+```{r}
+loess_fit = loess(merged_df$OE ~ merged_df$`3P_Percentage`, data = merged_df, span = 0.6612838, degree = 2)
+results = summary(loess_fit)
+results
+```
+
+
+
+
 # KNN Classification
 
 Column {data-width=450}
 -----------------------------------------------------------------------
 
-### Chart A
+### Research Question and PCA plot
+
+**Question**: "How accurately can a K-nearest neighbors (KNN) classifier predict the success level of basketball teams based on their defensive efficiency (DE), strength of schedule (SOS), and tempo? \
+
+The levels are divided based on Win-Loss Percentage as follows:
+
+- "Successful": > 0.75
+- "Above Average": 0.5 - 0.75
+- "Average": 0.25 - 0.5
+- "Below Average": < 0.25
+
 
 We are performing $\textbf{k-Nearest Neighbors (kNN)}$ classification on a dataset with predictors $\textbf{"SOS" (Strength of Schedule)}$ and $\textbf{"DE" (Defensive Efficiency)}$, $\textbf{"Tempo"}$ categorizing teams based on their win-loss percentages into four categories: $\textbf{“Successful", “Above Average", “Average,"}$ and $\textbf{“Below Average"}$. It splits the data into training and test sets, trains a kNN classifier with $\textbf{k=7}$ neighbors, and evaluates its accuracy, providing insights into team categorization based on performance metrics.
 
@@ -498,12 +645,14 @@ pca_plot
 The above graph is obtained after performing Principal Component Analysis (PCA) on the $\textbf{SOS}$, $\textbf{DE}$, and $\textbf{Tempo}$ variables from the $\textbf{train_data}$. It converts the PCA results into a data frame and creates an interactive scatter plot using plotly, where each data point represents a team. The plot displays the teams in a two-dimensional space based on the first two principal components ($\textbf{PC1}$ and $\textbf{PC2}$), with color indicating the $\textbf{team_cat}$ variable (team category) and team names shown as hover text.
 
 
+
 Column {data-width=350}
 -----------------------------------------------------------------------
 
 ### K value vs Accuracies
 
 #### Ploting Accuracy for various values of K
+
 
 ```{r}
 k_values <- seq(1, 50, by = 1)
@@ -538,6 +687,338 @@ plot_ly(data = accuracy_df, x = ~K, y = ~Accuracy, type = "scatter", mode = "lin
 Above plot is a comprehensive evaluation of KNN models with varying numbers of neighbors (K) ranging from 1 to 50. It calculates the accuracy of each KNN model by comparing its predictions on the test dataset against the actual labels.We identify the K value that achieves the highest accuracy and highlights this optimal point in the plot using a distinctive red color
 
 
-### Chart C
+### The Results
+
+#### Confusion Matrix
+
+```{r}
+
+library(caret)
+library(kableExtra)
+
+library(gmodels)
+
+# Assuming iris_knn_classes contains the predicted classes and test_classes contains the actual classes
+
+# Create a data frame with the actual and predicted values
+results <- data.frame(Actual = y_test, Predicted = knn_model)
+
+# Create the confusion matrix using CrossTable
+conf_matrix <- CrossTable(x = results$Predicted, y = results$Actual, prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE)
+
+# Print the confusion matrix
+print(conf_matrix)
+
+# Print the cross table
+
+
+# Create a confusion matrix
+conf_matrix <- confusionMatrix(data = factor(results$Predicted, levels = unique(y_test)),
+                               reference = factor(y_test, levels = unique(y_test)))
+conf_matrix
+
+
+```
+
+The cross table compares the actual classes with the predicted classes from a classification model. It contains counts of correct predictions for each class combination: \
+\
+- "Above Average": Correctly predicted 33 times out of 42 instances (78.57% accuracy). \
+- "Average": Correctly predicted 20 times out of 31 instances (64.52% accuracy). \
+- "Below Average": Correctly predicted 4 times out of 4 instances (100% accuracy). \
+- "Successful": Correctly predicted 0 times out of 2 instances (0% accuracy). \
+The total number of instances considered in the table is 73
+
+
+# Naive Bayes Classification
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Research Question
+How can Naive Bayes classification be utilized to categorize college basketball teams as good, average, or bad 3-point shooting teams based on their three-pointer percentage, considering that we observed a positive relationship between three-pointer percentage and Offensive Efficiency when using LOESS?
+
+
+### Distribution of 3-Point Percentage Categories
+```{r}
+excellent_threshold <- 0.40
+good_threshold <- 0.35
+average_threshold <- 0.30
+
+merged_df$`3P_Shooting_Category` <- cut(merged_df$`3P_Percentage`,
+                                      breaks = c(0, average_threshold, good_threshold, excellent_threshold, Inf),
+                                      labels = c("poor", "average", "good", "excellent"),
+                                      include.lowest = TRUE)
+
+category_counts = table(merged_df$`3P_Shooting_Category`)
+category_df = data.frame(Category = names(category_counts), Count = as.numeric(category_counts))
+
+
+ggplot(category_df, aes(x = category_df$Category, y = category_df$Count, fill = Category)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Distribution of 3-Point Shooting Categories",
+       x = "Category", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Column {data-width = 650}
+-----------------------------------------------------------------------
+
+### Naive Bayes Classification
+```{r}
+library(e1071)
+
+train_index <- sample(1:nrow(merged_df), 0.8 * nrow(merged_df))  # 80% for training
+train_data <- merged_df[train_index, ]
+test_data <- merged_df[-train_index, ]
+train_y = merged_df[train_index, ]$`3P_Shooting_Category`
+test_y = merged_df[-train_index, ]$`3P_Shooting_Category`
+
+
+# Train the Naive Bayes classifier
+nb_classifier <- naiveBayes(`3P_Shooting_Category` ~ OE + Tempo + Points_For + FG_Perecntage, data = train_data)
+
+# Predict on the testing set
+predictions <- predict(nb_classifier, test_data)
+
+# Calculate accuracy
+accuracy <- mean(predictions == test_data$`3P_Shooting_Category`)
+cat("Accuracy:", accuracy, "\n")
+
+yhat <- predict(nb_classifier, test_data)
+```
+
+
+#### Confusion Matrix
+```{r}
+library(gmodels)
+CrossTable(yhat, test_y,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c("predicted", "actual"))
+```
+
+
+#### PCA Plot
+```{r}
+is_correct <- function(actual, predicted) {
+  return(actual == predicted)
+}
+
+# Apply the function to each row in the test data
+test_data$correct_classification <- mapply(is_correct, test_data$`3P_Shooting_Category`, predictions)
+
+# Perform PCA
+pca_data <- prcomp(train_data[, c("OE", "Tempo", "Points_For", "FG_Perecntage")], scale. = TRUE)
+
+# Project test data onto PCA space
+test_data_pca <- predict(pca_data, test_data[, c("OE", "Tempo", "Points_For", "FG_Perecntage")])
+
+# Create a data frame for plotting
+plot_df <- data.frame(PC1 = test_data_pca[, "PC1"],
+                      PC2 = test_data_pca[, "PC2"],
+                      Category = test_data$`3P_Shooting_Category`,
+                      Correctly_Classified = test_data$correct_classification)
+
+# Plot
+ggplot(plot_df, aes(x = PC1, y = PC2, color = Category, shape = Correctly_Classified)) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("red", "blue", "green", "purple")) +
+  scale_shape_manual(values = c(16, 18)) +
+  labs(title = "PCA Plot with Classification Results",
+       x = "PC1", y = "PC2", color = "Category",
+       shape = "Classification") +
+  theme_minimal()
+```
+
+
+
+# Logistic Regression
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Research Question
+
+
+What is the relationship between a team's number of wins (Wins) and their likelihood of having an above-average 3-point percentage (3P_Percentage > mean) versus a below-average 3-point percentage (3P_Percentage <= mean)? \
+
+**Variables Used**
+
+Let’s briefly look at the data
+
+
+- *Wins*: The number of wins achieved by a team, likely indicating their overall performance or success in games.
+- *3P_Percentage*: The percentage of successful three-point shots made by a team, a measure of their accuracy and skill in long-range shooting.
+- *Binary_3P*: A binary variable indicating whether a team's 3P_Percentage is above the mean (1 for "High 3P") or below/equal to the mean (0 for "Low/Medium 3P"), used as the target variable for logistic regression prediction.
+
+#### First 6 rows of the dataset
+
+
+```{r}
+mean_3p_percentage <- mean(merged_df$'3P_Percentage')
+
+# Categorize based on the mean
+merged_df$Binary_3P <- ifelse(merged_df$'3P_Percentage' > mean_3p_percentage, 1, 0)
+
+
+
+selected_vars <- c("Team", "Rk", "Wins", "3P_Percentage", "Binary_3P")
+selected_data <- merged_df[selected_vars]
+
+# Printing the head of the selected data
+knitr::kable(head(selected_data))
+
+```
+
+```{r}
+
+
+# Split the data into training and test sets
+set.seed(42)
+train_indices <-  sample(1:nrow(merged_df), size = 0.8 * nrow(merged_df), replace = FALSE)
+train_data <- merged_df[train_indices, ]
+test_data <- merged_df[-train_indices, ]
+
+
+
+# Fit logistic regression model
+log_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+
+
+# Make predictions on the test set
+test_data$Predicted_Probabilities <- predict(log_model, newdata = test_data, type = "response")
+
+# Convert predicted probabilities to predicted classes (0 or 1)
+test_data$Predicted_Classes <- ifelse(test_data$Predicted_Probabilities > 0.5, 1, 0)
+
+# Calculate accuracy
+accuracy <- mean(test_data$Predicted_Classes == test_data$Binary_3P)
+
+# Print accuracy
+#cat("Accuracy of Logistic Regression model:", accuracy, "\n")
+
+# Fit logistic regression model
+log_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+# Create a sequence of Wins values for prediction
+wins_seq <- seq(min(train_data$Wins), max(train_data$Wins), length.out = 100)
+
+# Predict probabilities for the Wins sequence
+predicted_probs <- predict(log_model, newdata = data.frame(Wins = wins_seq), type = "response")
+
+# Plot the logistic regression curve
+ggplot(merged_df, aes(x = Wins, y = Binary_3P)) +
+  geom_point(aes(color = Binary_3P), position = position_jitter(height = 0.09, width = 0)) +
+  geom_smooth(method = "glm", method.args = list(family="binomial")) +
+  labs(y = "P(High 3P)", title = "Logistic Regression Curve") +
+  theme_bw()
+
+
+```
+
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Summary
+
+#### Summary of our model is:
+
+```{r}
+summary(log_model)
+
+```
+
+
+The logistic regression equation for the model is:
+
+\[
+\eta = -3.4 + 0.20 \times \text{Wins}
+\]
+
+Where:
+- \( \eta \) (eta) is the linear predictor.
+- `Wins` is the predictor variable.
+- The intercept is -3.34966.
+- The coefficient for `Wins` is 0.20159.
+
+
+```{r}
+# Fit the reduced model (with fewer predictors)
+reduced_model <- glm(Binary_3P ~ 1, data = train_data, family = binomial)
+
+# Fit the full model (with more predictors)
+full_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+# Perform drop-in-deviance LR test
+lr_test <- anova(reduced_model, full_model, test = "Chisq")
+
+# Print the LR test results
+print(lr_test)
+
+
+```
+
+#### Drop-in-Deviance Likelihood Ratio Test
+
+Assessing the overall goodness-of-fit.
+
+```{r}
+
+# Fit the reduced model (with fewer predictors)
+reduced_model <- glm(Binary_3P ~ 1, data = train_data, family = binomial)
+
+# Fit the full model (with more predictors)
+full_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+# Perform the likelihood ratio test (LR test)
+lr_test <- anova(reduced_model, full_model, test = "LRT")
+
+# Print the LR test results
+print(lr_test)
+
+```
+
+the Analysis of Deviance Table suggests that including the predictor "Wins" significantly improves the logistic regression model's fit for predicting the binary outcome "Binary_3P." The model with "Wins" as a predictor explains more of the variability in the response variable compared to the null model 
+
+### Accuracy
+
+#### Confusion matrix 
+
+
+```{r}
+
+library(caret)
+library(e1071)  # This library includes the confusionMatrix function
+
+# Define the logistic regression model
+log_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+# Predict probabilities on the test data
+pihat_test <- predict(log_model, newdata = test_data, type = "response")
+
+# Define the threshold
+threshold <- 0.5
+
+# Categorize predictions into 1 (Above Average) or 0 (Average) based on the threshold
+predicted_category <- factor(ifelse(pihat_test > threshold, 1, 0))
+
+# Create the confusion matrix
+conf_matrix <- confusionMatrix(data = predicted_category, reference = factor(test_data$Binary_3P, levels = c(0, 1)))
+
+# Print the confusion matrix
+print(conf_matrix)
+
+
+
+
+```
+
+The confusion matrix and metrics like accuracy (63.01%) and Cohen's kappa (0.2582) reflect the binary classification model's performance. Sensitivity (60.00%) and specificity (65.79%) show its ability to detect positive and negative instances accurately. Positive predictive value (61.76%) and prevalence (47.95%) offer insights into prediction accuracy and dataset composition
+
+```
+
 
 

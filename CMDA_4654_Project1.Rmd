@@ -617,34 +617,35 @@ pca_plot
 ## Logistic
 
 ```{r}
-merged_df$Track <- ifelse(merged_df$Win_Loss_Percentage > 0.50, "Winning Track", "Losing Track")
+mean_3p_percentage <- mean(merged_df$'3P_Percentage')
 
-# Load required libraries
-library(caret)
-library(dplyr)
+# Categorize based on the mean
+merged_df$Binary_3P <- ifelse(merged_df$'3P_Percentage' > mean_3p_percentage, 1, 0)
 
-# Assuming merged_df contains your data as a DataFrame with columns "Track", "Tempo", and "Luck"
-
-# Encode "Track" column into binary values
-merged_df <- merged_df %>%
-  mutate(Track = ifelse(Track == "Winning Track", 1, 0)) 
 
 # Split the data into training and test sets
 set.seed(42)
-train_indices <- createDataPartition(df$Track, p = 0.8, list = FALSE)
+train_indices <-  sample(1:nrow(merged_df), size = 0.8 * nrow(merged_df), replace = FALSE)
 train_data <- merged_df[train_indices, ]
 test_data <- merged_df[-train_indices, ]
 
-# Create a logistic regression model
-log_model <- glm(Track ~ Tempo, data = train_data, family = binomial)
+
+
+# Fit logistic regression model
+log_model <- glm(Binary_3P ~ Wins, data = train_data, family = binomial)
+
+
 
 # Make predictions on the test set
-predictions <- predict(log_model, newdata = test_data, type = "response")
+test_data$Predicted_Probabilities <- predict(log_model, newdata = test_data, type = "response")
 
+# Convert predicted probabilities to predicted classes (0 or 1)
+test_data$Predicted_Classes <- ifelse(test_data$Predicted_Probabilities > 0.5, 1, 0)
 
+# Calculate accuracy
+accuracy <- mean(test_data$Predicted_Classes == test_data$Binary_3P)
 
-# Evaluate the model
-accuracy <- mean(predicted_classes == test_data$Track)
+# Print accuracy
 cat("Accuracy of Logistic Regression model:", accuracy, "\n")
 
 ```
