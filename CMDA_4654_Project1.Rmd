@@ -1,7 +1,7 @@
 ---
 title: "CMDA-4654"
 subtitle: "Project 1"
-author: "Matthew Hill and Rohan Reddy Illapuram"
+author: "Rohan Reddy Ilapuram"
 date: "April 1, 2024"
 output:
   pdf_document:
